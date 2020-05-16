@@ -1,6 +1,23 @@
-version: '3.4'
+version: '3.1'
 
 services:
+  db_docker:
+    container_name: db_docker
+    hostname: db_docker
+    restart: always
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: api_db
+    image: postgres # wat?
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
   test_api:
     build:
       context: .
@@ -10,11 +27,7 @@ services:
     image: test_api
 
     ports:
-      - 5555:5555
+      - 5000:5000
     restart: on-failure
-
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: test
+    depends_on:
+      - db_docker
