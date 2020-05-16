@@ -1,0 +1,20 @@
+version: '3.4'
+
+services:
+  test_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: test_api
+    hostname: test_api
+    image: test_api
+
+    ports:
+      - 5555:5555
+    restart: on-failure
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: test
