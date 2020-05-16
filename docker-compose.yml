@@ -2,6 +2,7 @@ version: '3.1'
 
 services:
   db_docker:
+    image: postgres
     container_name: db_docker
     hostname: db_docker
     restart: always
@@ -10,7 +11,6 @@ services:
     environment:
       POSTGRES_PASSWORD: test
       POSTGRES_DB: api_db
-    image: postgres # wat?
 
   adminer:
     image: adminer
