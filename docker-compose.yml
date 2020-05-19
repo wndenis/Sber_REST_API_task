@@ -12,12 +12,6 @@ services:
       POSTGRES_PASSWORD: test
       POSTGRES_DB: api_db
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
-
   test_api:
     build:
       context: .
@@ -25,9 +19,21 @@ services:
     container_name: test_api
     hostname: test_api
     image: test_api
-
+    environment:
+      POSTGRES_HOST: db_docker
+      POSTGRES_PASSWORD: test
+      POSTGRES_USER: postgres
+      POSTGRES_DB: api_db
+      POSTGRES_PORT: 5432
+      FAKE_DB: 1
     ports:
       - 5000:5000
     restart: on-failure
     depends_on:
       - db_docker
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
