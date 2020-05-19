@@ -24,6 +24,10 @@
 
 ## API
 Это небольшое API для взаимодействия с базой данных пользователей.  
+Столбцы в базе данных: id, name, age.  
+
+![swagger ui](https://github.com/wndenis/Sber_REST_API_task/raw/master/readme_media/swagger_ui.png)
+
 Представлены методы:
 * /users  
   * GET - получить список всех пользователей  
