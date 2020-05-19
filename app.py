@@ -61,25 +61,35 @@ class UsersDAO(object):
     def get(self, id):
         user = UsersModel.query.filter_by(id=id).first()
         if user:
-            print(user)
-            print(type(user))
             return user.serialize
         api.abort(404, f"User {id} not found")
 
     def create(self, data):
-        user = UsersModel(data["name"], data["age"])
-        db.session.add(user)
-        db.session.commit()
-        return user.serialize
+        try:
+            user = UsersModel(data["name"], data["age"])
+        except TypeError:
+            api.abort(400, f"Invalid payload")
+        except KeyError:
+            api.abort(400, f"Not all fields present")
+        else:
+            db.session.add(user)
+            db.session.commit()
+            return user.serialize
 
     def update(self, id, data):
-        user = UsersModel.query.filter_by(id=id).first
+        user = UsersModel.query.filter_by(id=id).first()
         # if parameter is present, we change user's parameter
         # else leave the old one
-        user["name"] = data["name"] or user["name"]
-        user["age"] = data["age"] or user["age"]
-        db.session.commit()
-        return user.serialize
+        try:
+            new_name = data.get("name")
+            new_age = data.get("age")
+            user.name = new_name or user.name
+            user.age = new_age or user.age
+        except TypeError:
+            api.abort(400, f"Invalid payload")
+        else:
+            db.session.commit()
+            return user.serialize
 
 
     def delete(self, id):
@@ -91,10 +101,9 @@ class UsersDAO(object):
 DAO = UsersDAO()
 
 
-@api.route("/users/")
+@api.route("/users")
 class UsersResource(Resource):
-    # """users api"""
-    # todo: docstring
+    """Get a list of all users and create a new one"""
     def get(self):
         """List of all users"""
         # res = pd.read_sql_query(f'select * from users', con=conn).to_dict(orient="records")
