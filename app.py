@@ -15,21 +15,28 @@ import time
 
 import config
 
+# create app
 app = Flask(__name__)
+
+# create api
 api = Api(app, version="0.1", title="Sber test task API")
 
+# create api model
 user_api = api.model("User", {
-    "id": fields.Integer(readOnly=True, description="Unique id of user"),
+    "id": fields.Integer(readonly=True, description="Unique id of user"),
     "name": fields.String(required=True, description="User's name"),
     "age": fields.Integer(required=True, description="User's age")
 })
 
+# create db access
 db = flask_sqlalchemy.SQLAlchemy()
+
+# configure logger
 app.logger.setLevel(DEBUG)
 
 
 class UsersModel(db.Model):
-    """sqlalchemy model represents "Users" table"""
+    """SQLalchemy model represents "Users" table"""
 
     __tablename__ = "users"
 
@@ -43,6 +50,9 @@ class UsersModel(db.Model):
 
     @property
     def serialize(self):
+        """
+        :return: serialized version of object
+        """
         return {"id": self.id,
                 "name": self.name,
                 "age": self.age}
@@ -52,19 +62,33 @@ class UsersModel(db.Model):
 
 
 class UsersDAO(object):
-    """data access object to interact with database"""
+    """Data access object to interact with database"""
     @property
     def all(self):
+        """
+        Retrieve all users
+        :return: List with all users
+        """
         result = UsersModel.query.all()
         return [elem.serialize for elem in result]
 
-    def get(self, id):
+    def get(self, id: int):
+        """
+        Retrieve user by id
+        :param id: User id
+        :return: User or 404 if not found
+        """
         user = UsersModel.query.filter_by(id=id).first()
         if user:
             return user.serialize
         api.abort(404, f"User {id} not found")
 
     def create(self, data):
+        """
+        Create a new user
+        :param data: dict containing "age" (int) and "name" (str)
+        :return: User or 400 if body invalid
+        """
         try:
             user = UsersModel(data["name"], data["age"])
         except TypeError:
@@ -76,7 +100,14 @@ class UsersDAO(object):
             db.session.commit()
             return user.serialize
 
-    def update(self, id, data):
+    def update(self, id: int, data):
+        """
+        Update user by id using values from data
+        Updates only present keys, so {"name":"new_name"} will change only the name while age remains unchanged
+        :param id: User id
+        :param data: dict containing one or both "age" (int) and "name" (str) to update
+        :return: User
+        """
         user = UsersModel.query.filter_by(id=id).first()
         # if parameter is present, we change user's parameter
         # else leave the old one
@@ -91,9 +122,15 @@ class UsersDAO(object):
             db.session.commit()
             return user.serialize
 
-
-    def delete(self, id):
+    def delete(self, id: int):
+        """
+        Delete user by id
+        :param id: User id
+        :return: None
+        """
         user = UsersModel.query.filter_by(id=id).first()
+        if not user:
+            api.abort(404, "User not found")
         db.session.delete(user)
         db.session.commit()
 
@@ -101,9 +138,10 @@ class UsersDAO(object):
 DAO = UsersDAO()
 
 
+# Routes
 @api.route("/users")
 class UsersResource(Resource):
-    """Get a list of all users and create a new one"""
+    """Get a list of all users or create a new one"""
     def get(self):
         """List of all users"""
         # res = pd.read_sql_query(f'select * from users', con=conn).to_dict(orient="records")

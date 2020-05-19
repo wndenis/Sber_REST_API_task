@@ -1,7 +1,10 @@
 import os
 
-# retrieve environment vars from docker-compose
-# so configuration made only once at deployment
+"""
+retrieve environment vars from docker-compose
+so configuration made only once at deployment
+"""
+
 pg_host = os.environ["POSTGRES_HOST"]
 pg_port = os.environ["POSTGRES_PORT"]
 
