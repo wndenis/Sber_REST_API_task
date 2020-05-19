@@ -23,9 +23,9 @@ api = Api(app, version="0.1", title="Sber test task API")
 
 # create api model
 user_api = api.model("User", {
-    "id": fields.Integer(readonly=True, description="Unique id of user"),
-    "name": fields.String(required=True, description="User's name"),
-    "age": fields.Integer(required=True, description="User's age")
+    "id": fields.Integer(readonly=True, description="Unique id of user", min=1),
+    "name": fields.String(required=True, description="User's name", max_length=80, example="Peter Parker"),
+    "age": fields.Integer(required=True, description="User's age", example=22)
 })
 
 # create db access
@@ -91,10 +91,8 @@ class UsersDAO(object):
         """
         try:
             user = UsersModel(data["name"], data["age"])
-        except TypeError:
-            api.abort(400, f"Invalid payload")
-        except KeyError:
-            api.abort(400, f"Not all fields present")
+        except (KeyError, TypeError):
+            api.abort(400, "Invalid payload")
         else:
             db.session.add(user)
             db.session.commit()
@@ -103,21 +101,17 @@ class UsersDAO(object):
     def update(self, id: int, data):
         """
         Update user by id using values from data
-        Updates only present keys, so {"name":"new_name"} will change only the name while age remains unchanged
         :param id: User id
-        :param data: dict containing one or both "age" (int) and "name" (str) to update
+        :param data: dict containing both "age" (int) and "name" (str) keys
         :return: User
         """
         user = UsersModel.query.filter_by(id=id).first()
-        # if parameter is present, we change user's parameter
-        # else leave the old one
+        # if one of parameters is not present, return 400
         try:
-            new_name = data.get("name")
-            new_age = data.get("age")
-            user.name = new_name or user.name
-            user.age = new_age or user.age
-        except TypeError:
-            api.abort(400, f"Invalid payload")
+            user.name = data["name"]
+            user.age = data["age"]
+        except (KeyError, TypeError):
+            api.abort(400, "Invalid payload")
         else:
             db.session.commit()
             return user.serialize
@@ -139,15 +133,18 @@ DAO = UsersDAO()
 
 
 # Routes
-@api.route("/users")
+@api.route("/users/")
 class UsersResource(Resource):
     """Get a list of all users or create a new one"""
+    @api.doc("list_users")
     def get(self):
         """List of all users"""
         # res = pd.read_sql_query(f'select * from users', con=conn).to_dict(orient="records")
         return DAO.all
 
+    @api.doc("create_user")
     @api.response(201, 'User created successfully')
+    @api.response(400, "Invalid payload")
     @api.expect(user_api)
     def post(self):
         """Create a new user"""
@@ -156,18 +153,21 @@ class UsersResource(Resource):
         return DAO.create(api.payload), 201
 
 
-@api.route("/users/<int:id>")
+@api.route("/users/<int:id>/")
 @api.response(404, "User not found")
 @api.param("id", "User identifier")
-class User(Resource):
+class UserResource(Resource):
+    """Access a single user and replace or delete it"""
     @api.doc("get_user")
+    @api.marshal_with(user_api)
     def get(self, id):
         """Fetch user with given id"""
         # res = pd.read_sql_query(f'select * from users where id={id}', con=conn).to_dict(orient="records")
         return DAO.get(id)
 
-    @api.doc("change_user")
+    @api.expect(user_api)
     @api.marshal_with(user_api)
+    @api.response(400, "Invalid payload")
     def put(self, id):
         """Update user with given id"""
         return DAO.update(id, api.payload)
@@ -219,6 +219,8 @@ if __name__ == '__main__':
         app.logger.error("Couldn't connet to database")
         exit(1)
     app.logger.info("Database connected successfully")
+
     if config.fake_db:
         recreate_db()
+
     app.run(host="0.0.0.0", debug=True)

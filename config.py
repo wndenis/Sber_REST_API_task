@@ -15,4 +15,4 @@ pg_db = os.environ["POSTGRES_DB"]
 
 DB_URI = f"postgresql+psycopg2://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
 
-fake_db = bool(os.environ["FAKE_DB"])
+fake_db = bool(int(os.environ["FAKE_DB"]))
